@@ -1,0 +1,180 @@
+---
+title: "Praktikum 12"
+subtitle: "Logical Operators"
+output: 
+  html_document: 
+    number_sections: yes
+    highlight: tango
+    theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r lade-packages}
+
+library(dplyr)
+library(palmerpenguins)
+
+```
+
+# Hintergrund
+
+Die folgende Abfrage soll mittels der `{dplyr}` R Package Funktion `filter()` erstellt werden.
+
+```
+((body_mass_g < 3000 | body_mass_g > 5000) & flipper_length_mm > 220) 
+
+  | (bill_length_mm > 34 & bill_length_mm < 35 &  bill_depth_mm > 20)
+```
+
+Das erwartete Resultat hat 33 Zeilen. Die obige Abfrage würde in SQL zum gewünschten Resultat führen. Vielen Dank an @as-bk für die Frage.
+
+# Abfrage Teil 1
+
+## Beispiel 1
+
+- **Ziel:** 32 Zeilen 
+- **Ergebnis:** 32 Zeilen
+
+```{r }
+penguins %>% 
+  filter(body_mass_g < 3000 | body_mass_g > 5000) %>% 
+  filter(flipper_length_mm > 220) %>% 
+  nrow()
+```
+
+## Beispiel 2
+
+- **Ziel:** 32 Zeilen  
+- **Ergebnis:** 32 Zeilen
+- **Begründung:** Das `,` bewirkt eine abgeschlossene Abfrage
+- **Erklärung:** Erst werden die Beobachtungen behalten, welche die Bedingung `body_mass_g < 3000 | body_mass_g > 5000` erfüllen und als abgeschlossen betrachtet. Anschliessend daran werden die Beobachtungen welche die Bedingung `flipper_length_mm > 220` erfüllen behalten. Es ist das Gleiche als wenn mit der `%>%` (pipe) eine weitere `filter()` Bedingung gesetzt wird.
+
+```{r}
+penguins %>% 
+  filter(body_mass_g < 3000 | body_mass_g > 5000, flipper_length_mm > 220) %>% 
+  nrow()
+```
+
+```{r}
+penguins %>% 
+  filter(body_mass_g < 3000 | body_mass_g > 5000) %>% 
+  filter(flipper_length_mm > 220) %>% 
+  nrow()
+```
+
+## Beispiel 3
+
+- **Ziel:** 32 Zeilen  
+- **Ergebnis:** 41 Zeilen
+- **Begründung:** Der `&` (und) Operator hat Vorrang vor dem `|` (oder) Operator. Siehe auch [R Operator Precedence and Associativity](https://www.datamentor.io/r-programming/precedence-associativity/) 
+- **Erklärung:** Es werden erst die Beobachtungen behalten, welche die Bedingung `body_mass_g > 5000 & flipper_length_mm > 220` erfüllen. Erst danach kommt der `|` (oder) Operator und behält die Beobachtungen bei welchen `body_mass_g < 3000` zustimmt. 
+- **Gelernt:** Der `&` (und) Operator und der `|` (oder) Operator können nicht wie bisher erwartet austauschbar genutzt werden. Dies klappt nur in dem Fall, in welchem ledichlich der `&` (und) Operator genutzt wird.
+
+```{r}
+penguins %>% 
+  filter(body_mass_g < 3000 | body_mass_g > 5000 & flipper_length_mm > 220) %>% 
+  nrow()
+```
+
+# Abfrage Teil 2
+
+## Beispiel 1
+
+- **Ziel:** 1 Zeile  
+- **Ergebnis:** 1 Zeile
+- **Begründung:** Die Bedingungen werden nacheinander ausgeführt
+
+```{r}
+penguins %>% 
+  filter(bill_length_mm > 34, bill_length_mm < 35, bill_depth_mm > 20) %>% 
+  nrow()
+```
+
+## Beispiel 2
+
+- **Ziel:** 1 Zeile  
+- **Ergebnis:** 1 Zeile
+- **Begründung:** In diesem Fall ist das ',' austauschbar mit dem & (und) Operator. Die Bedingungen werden nacheinander ausgeführt
+
+```{r}
+penguins %>% 
+  filter(bill_length_mm > 34 & bill_length_mm < 35 & bill_depth_mm > 20) %>% 
+  nrow()
+```
+
+## Beispiel 3
+
+- **Ziel:** 1 Zeile  
+- **Ergebnis:** 1 Zeile
+- **Begründung:** Die Bedingungen werden nacheinander ausgeführt
+
+```{r}
+penguins %>% 
+  filter(bill_length_mm > 34) %>% 
+  filter(bill_length_mm < 35) %>% 
+  filter(bill_depth_mm > 20) %>% 
+  nrow()
+```
+
+# Frage
+
+Das Resultat des zweiten Teils ist im ersten Teil nicht enthalten. Wie muss das Filtering geschehen, dass ich das gesamte Ergebnis in einem Output erhalte? 
+
+## Lösung
+
+- **Ziel:** 33 Zeilen  
+- **Ergebnis:** 33 Zeilen
+- **Begründung:** Der `&` (und) Operator hat Vorrang vor dem `|` (oder) Operator.
+- **Erklärung:** Die Bedingung `(body_mass_g < 3000 | body_mass_g > 5000)` muss in Klammern gesetzt werden damit der & (und) Operator nicht zuerst auf `body_mass_g > 5000 & flipper_length_mm > 220` ausgeführt wird (siehe Teil 1 Beispiel 3). Danach wird der zweite Teil der Abfrage mittels des `|` (oder) Operators hinzugefügt. Das Ergebnis ennthält die 32 Beobachtungen aus dem ersten Teil der Abfrage und fügt dann noch 1 Beobachtung über die `|` (oder) Bedingung hinzu.
+- **Gelernt:** Die Abfrage ist identisch zu der gewünschten SQL Abfrage (siehe Hintergund)
+
+```{r}
+penguins %>% 
+  filter(
+    # Teil 1 - verbinden Teil 2 mit | (oder) Operator 
+    (body_mass_g < 3000 | body_mass_g > 5000) & flipper_length_mm > 220 | 
+      # Teil 2
+      (bill_length_mm > 34 & bill_length_mm < 35 & bill_depth_mm > 20)
+  ) %>% 
+  nrow()
+```
+
+## Keine Lösung
+
+- **Ziel:** 33 Zeilen  
+- **Ergebnis:** 32 Zeilen
+- **Begründung:** Das `,` ist nicht austauschbar mit dem `&` (und) Operator.
+- **Erklärung:** Die Bedingung `(body_mass_g < 3000 | body_mass_g > 5000)` wird ausgeführt und wie eine abgeschlossene Abfrage behandelt. Dann wird die Abfrage `flipper_length_mm > 220 | (bill_length_mm > 34 & bill_length_mm < 35 & bill_depth_mm > 20)` gemacht. Der `|` (oder) Operator hat jedoch keine Wirkung mehr, da die Beoabchtungen welche durch das `|` (oder) behalten werden sollten bereits mittels des ersten Teils abgeschlossen entfernt wurden. 
+- **Gelernt:** Der `&` (und) Operator und der `|` (oder) Operator können nicht wie bisher erwartet austauschbar genutzt werden. Vielmehr führt das Komma zu einer abgeschlossenen Abfrage, welche zu dem gleichen Ergebnis führt wie der Nutzen einer weiteren `filter()` Funktion in Kombination mit der `%>%` (pipe).
+
+```{r}
+penguins %>% 
+  filter(
+    # Teil 1
+    (body_mass_g < 3000 | body_mass_g > 5000), # das & (und) wurde durch ',' ersetzt
+    # Teil 2
+    flipper_length_mm > 220 |
+      (bill_length_mm > 34 & bill_length_mm < 35 & bill_depth_mm > 20)
+  ) %>% 
+  nrow()
+```
+
+Führt zu dem gleichen Ergebnis wie der Code im Code-chunk zuvor.
+
+```{r}
+penguins %>% 
+  # Teil 1
+  filter(body_mass_g < 3000 | body_mass_g > 5000) %>% 
+  # Teil 2
+  filter(
+    flipper_length_mm > 220 |
+      (bill_length_mm > 34 & bill_length_mm < 35 & bill_depth_mm > 20)
+  ) %>% 
+  nrow()
+```
+
